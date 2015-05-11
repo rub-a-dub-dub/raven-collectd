@@ -80,7 +80,7 @@ def write_to_collectd(dataPt):
     val.dispatch(values=[dataPt])
 
 def read_data():
-    '''This function will read from the serial device, process the data and publish MQTT messages'''
+    '''This function will read from the serial device, process the data and write to collectd'''
     global ser
     if isReady():
         # begin listening to RAVEn
