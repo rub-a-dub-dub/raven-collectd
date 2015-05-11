@@ -10,30 +10,46 @@ ser = None
 reStartTag = re.compile('^<[a-zA-Z0-9]+>')
 reEndTag = re.compile('^<\/[a-zA-Z0-9]+>')
 
-def close_plugin:
+def config_plugin(conf):
+    '''This will configure the plugin with the serial device name'''
+    global serDevice
+    for node in conf.children:
+        key = node.key.lower()
+        val = node.values[0]
+
+        if key == 'device':
+            serDevice = val
+        else:
+            collectd.warning("ravencollectd: Unknown config key: %s." % key)
+            continue
+
+def close_plugin():
     '''This will clean up all opened connections'''
+    global ser
     if ser is not None:
         ser.close()
-        collectd.info("Serial port closed.")
+        collectd.info("ravencollectd: Serial port closed.")
     else:
-        collectd.debug("Asking to close serial port, but it was never open.")
+        collectd.debug("ravencollectd: Asking to close serial port, but it was never open.")
 
-def initialise_plugin:
+def initialise_plugin():
     '''This function opens the serial port looking for a RAVEn. Returns True if successful, False otherwise.'''
+    global ser
     try:
         ser = serial.Serial(serDevice, 115200, serial.EIGHTBITS, serial.PARITY_NONE, timeout=0.5)
         ser.close()
         ser.open()
         ser.flushInput()
         ser.flushOutput()
-        collectd.info("Connected to: " + ser.portstr)
+        collectd.info("ravencollectd: Connected to: " + ser.portstr)
         return True
     except Exception as e:
-        collectd.error("Cannot open serial port: " + str(e))
+        collectd.error("ravencollectd: Cannot open serial port: " + str(e))
         return False
 
-def isReady:
+def isReady():
     '''This function is used to check if this object has been initialised correctly and is ready to process data'''
+    global ser
     return (ser is not None)
 
 def getInstantDemandKWh(xmltree):
@@ -58,15 +74,14 @@ def calculateRAVEnNumber(xmltree, value):
 
 def write_to_collectd(dataPt):
     '''This actually writes the data to collectd'''
-    val = collectd.Values(plugin='ravencollectd')
-    val.type  = 'gauge'
+    val = collectd.Values(plugin='ravencollectd',type='gauge')
     val.type_instance = 'instantdemand'
     val.plugin_instance = 'raven'
-    val.values = [dataPt]
-    val.dispatch()
+    val.dispatch(values=[dataPt])
 
-def read_data:
+def read_data():
     '''This function will read from the serial device, process the data and publish MQTT messages'''
+    global ser
     if isReady():
         # begin listening to RAVEn
         rawxml = ""
@@ -81,7 +96,7 @@ def read_data:
                 # start tag
                 if reStartTag.match(rawline):
                     rawxml = rawline
-                    collectd.debug("Start XML Tag found: " + rawline)
+                    collectd.debug("ravencollectd: Start XML Tag found: " + rawline)
                 # end tag
                 elif reEndTag.match(rawline):
                     rawxml = rawxml + rawline
@@ -92,23 +107,24 @@ def read_data:
                             write_to_collectd(getInstantDemandKWh(xmltree))
                             # collectd.debug(getInstantDemandKWh(xmltree))
                         else:
-                            collectd.warning("Unrecognised (not implemented) XML Fragment")
-                            collectd.warning(rawxml)
+                            collectd.info("ravencollectd: Unrecognised (not implemented) XML Fragment")
+                            collectd.info(rawxml)
                     except Exception as e:
-                      collectd.error("Exception triggered: " + str(e))
+                      collectd.warning("ravencollectd: Exception triggered: " + str(e))
                     # reset rawxml
                     rawxml = ""
                     return
                 # if it starts with a space, it's inside the fragment
                 else:
                     rawxml = rawxml + rawline
-                    collectd.debug("Normal inner XML Fragment: " + rawline)
+                    collectd.debug("ravencollectd: Normal inner XML Fragment: " + rawline)
             else:
                 pass
     else:
-        collectd.error("Was asked to begin reading/writing data without opening connections.")
+        collectd.warning("ravencollectd: Was asked to begin reading/writing data without opening connections.")
 
 
 collectd.register_init(initialise_plugin)
+collectd.register_config(config_plugin)
 collectd.register_read(read_data)
 collectd.register_shutdown(close_plugin)
