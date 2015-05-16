@@ -138,8 +138,9 @@ def read_data():
                             write_to_collectd(getInstantDemandKWh(xmltree))
                             # collectd.debug(getInstantDemandKWh(xmltree))
                         else:
-                            collectd.info("ravencollectd: Unrecognised (not implemented) XML Fragment")
-                            collectd.info(rawxml)
+                            # collectd.info("ravencollectd: Unrecognised (not implemented) XML Fragment")
+                            # collectd.info(rawxml)
+			    pass
                     except Exception as e:
                       collectd.warning("ravencollectd: Exception triggered: " + str(e))
                     # reset rawxml
@@ -148,7 +149,7 @@ def read_data():
                 # if it starts with a space, it's inside the fragment
                 else:
                     rawxml = rawxml + rawline
-                    collectd.debug("ravencollectd: Normal inner XML Fragment: " + rawline)
+                    collectd.debug("ravencollectd: Normal inner XML Fragment: " + str(rawxml))
             else:
                 pass
     else:
