@@ -148,8 +148,9 @@ def read_data():
                     return
                 # if it starts with a space, it's inside the fragment
                 else:
-                    rawxml = rawxml + rawline
-                    collectd.debug("ravencollectd: Normal inner XML Fragment: " + str(rawxml))
+                    # rawxml = rawxml + rawline
+                    # collectd.debug("ravencollectd: Normal inner XML Fragment: " + str(rawxml))
+		    pass
             else:
                 pass
     else:
